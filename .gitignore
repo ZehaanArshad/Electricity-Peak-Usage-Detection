@@ -1,25 +1,135 @@
-# Large data files (exceed GitHub 100MB limit)
+# ──────────────────────────────────────────────────────────
+# DATA  (files too large for GitHub's 100 MB limit)
+# ──────────────────────────────────────────────────────────
 data/
+*.csv
+*.txt
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.npy
+*.npz
 
-# Virtual environment
+# ──────────────────────────────────────────────────────────
+# PYTHON
+# ──────────────────────────────────────────────────────────
+# Virtual environments
 .venv/
 venv/
 env/
+ENV/
 
-# Python cache
+# Byte-compiled / optimised / DLL files
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.so
 .Python
 
-# Jupyter checkpoints
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+
+# ──────────────────────────────────────────────────────────
+# JUPYTER
+# ──────────────────────────────────────────────────────────
 .ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+profile_default/
+ipython_config.py
 
-# OS files
+# ──────────────────────────────────────────────────────────
+# NODE.JS  (matches every subdirectory — backend/, frontend/, etc.)
+# ──────────────────────────────────────────────────────────
+# Dependencies — catch node_modules at ANY depth
+node_modules/
+**/node_modules/
+**/node_modules/**
+
+# Lock files (optional — remove the line if you want to track them)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp
+.pnp.js
+
+# npm / yarn / pnpm caches & debug logs
+.npm/
+.yarn/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Build output (if you add a frontend later)
+dist/
+build/
+.next/
+.nuxt/
+.output/
+.svelte-kit/
+
+# ──────────────────────────────────────────────────────────
+# ENVIRONMENT VARIABLES  (never commit secrets!)
+# ──────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ──────────────────────────────────────────────────────────
+# OS GENERATED FILES
+# ──────────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# IDE
+# ──────────────────────────────────────────────────────────
+# IDE / EDITOR
+# ──────────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# ──────────────────────────────────────────────────────────
+# LOGS & TEMP
+# ──────────────────────────────────────────────────────────
+logs/
+*.log
+tmp/
+temp/
+.cache/
+
+# ──────────────────────────────────────────────────────────
+# ANACONDA / CONDA
+# ──────────────────────────────────────────────────────────
+anaconda_projects/.projectignore
