@@ -1,30 +1,26 @@
 import { NavLink } from 'react-router-dom'
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' open' : ''}`} tabIndex={open ? 0 : -1}>
       <a href="/" className="sidebar-logo">
-        <div className="logo-icon">⚡</div>
-        <div className="logo-text">
-          Peak<span>Det</span><br />
-          Energy AI
-        </div>
+        <div className="logo-icon"></div>
+        <div className="logo-text iceberg-regular">Zenith</div>
       </a>
 
       <div className="sidebar-section-title">Dashboard</div>
-      
-      <NavLink to="/overview" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+      <NavLink to="/overview" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}> 
         <span className="nav-icon">📊</span> Overview
       </NavLink>
-      <NavLink to="/meters" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+      <NavLink to="/meters" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}> 
         <span className="nav-icon">🔌</span> Meters
       </NavLink>
-      <NavLink to="/peaks" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+      <NavLink to="/peaks" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}> 
         <span className="nav-icon">🚨</span> Peak Events
       </NavLink>
-      
+
       <div className="sidebar-section-title">Exports</div>
-      <NavLink to="/charts" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+      <NavLink to="/charts" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}> 
         <span className="nav-icon">🖼️</span> Legacy Charts
       </NavLink>
 

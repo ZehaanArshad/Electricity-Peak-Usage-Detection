@@ -1,7 +1,7 @@
 import { useTheme } from '../context/ThemeContext'
 import { useLocation } from 'react-router-dom'
 
-export default function Navbar() {
+export default function Navbar({ onSidebarToggle }) {
   const { theme, toggleTheme } = useTheme()
   const loc = useLocation()
   
@@ -14,6 +14,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
+      <button className="sidebar-trigger" onClick={onSidebarToggle} aria-label="Toggle sidebar">☰</button>
       <div className="navbar-title">{pageTitle}</div>
       <div className="navbar-right">
         <div className="badge">LIVE DATA</div>
