@@ -7,18 +7,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// Allow any origin in development; restrict to your Vercel URL in production.
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+// Set ALLOWED_ORIGINS env var to a comma-separated list of allowed origins,
+// or to '*' to allow all origins (useful for debugging).
+const rawOrigins = process.env.ALLOWED_ORIGINS || '';
+const allowedOrigins = rawOrigins
+  ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:4173'];
 
+const corsOrigin = allowedOrigins.includes('*')
+  ? '*'                  // wildcard — allow everything
+  : allowedOrigins;      // pass array — cors pkg handles matching natively
+
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. Render health checks, curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: corsOrigin,
   methods: ['GET'],
   credentials: false
 }));
@@ -39,6 +40,7 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`CORS allowed origins: ${JSON.stringify(corsOrigin)}`);
   console.log('Loading CSV data...');
 
   loadData()
