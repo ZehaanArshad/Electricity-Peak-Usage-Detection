@@ -16,47 +16,81 @@ let isLoaded = false;
 // ── CSV Download helper ────────────────────────────────────────────────────────
 /**
  * Downloads a file from `url` and saves it to `destPath`.
- * Follows a single redirect automatically and handles both http / https.
+ * Handles multiple redirects (up to 10) and Google Drive's large-file
+ * virus-scan confirmation page automatically.
  */
 function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
-    const protocol = url.startsWith('https') ? https : http;
+    // Detect Google Drive file IDs so we can build the bypass URL upfront
+    const gdriveDirect = url.match(
+      /drive\.google\.com\/(?:file\/d\/|uc\?.*id=|open\?id=)([a-zA-Z0-9_-]{20,})/
+    );
+    if (gdriveDirect) {
+      const fileId = gdriveDirect[1];
+      url = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+      console.log(`Google Drive file detected. Using direct download URL for ID: ${fileId}`);
+    }
 
-    const doRequest = (requestUrl) => {
-      protocol.get(requestUrl, (res) => {
-        // Follow redirect once
+    const MAX_REDIRECTS = 10;
+
+    function doRequest(requestUrl, redirectsLeft) {
+      if (redirectsLeft < 0) {
+        return reject(new Error('Too many redirects while downloading CSV.'));
+      }
+
+      const proto = requestUrl.startsWith('https') ? https : http;
+
+      proto.get(requestUrl, (res) => {
+        // Follow redirects
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          console.log(`Redirecting to: ${res.headers.location}`);
-          // Redirect may switch protocols
-          const redirectUrl = res.headers.location;
-          const redirectProtocol = redirectUrl.startsWith('https') ? https : http;
-          redirectProtocol.get(redirectUrl, (res2) => {
-            if (res2.statusCode !== 200) {
-              return reject(new Error(`Download failed with status ${res2.statusCode} after redirect`));
-            }
-            const total = parseInt(res2.headers['content-length'], 10);
-            let received = 0;
-            const file = fs.createWriteStream(destPath);
-            res2.on('data', (chunk) => {
-              received += chunk.length;
-              if (total) {
-                const pct = ((received / total) * 100).toFixed(1);
-                process.stdout.write(`\rDownloading CSV: ${pct}%   `);
-              }
-            });
-            res2.pipe(file);
-            file.on('finish', () => { file.close(); console.log('\nDownload complete.'); resolve(); });
-            file.on('error', reject);
-          }).on('error', reject);
-          return;
+          res.resume(); // drain the response body
+          const next = res.headers.location.startsWith('http')
+            ? res.headers.location
+            : new URL(res.headers.location, requestUrl).href;
+          console.log(`Redirect (${MAX_REDIRECTS - redirectsLeft + 1}): ${next}`);
+          return doRequest(next, redirectsLeft - 1);
         }
 
         if (res.statusCode !== 200) {
-          return reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+          res.resume();
+          return reject(new Error(`Download failed: HTTP ${res.statusCode} at ${requestUrl}`));
         }
 
+        // Buffer the first chunk to detect HTML (Google confirmation page)
+        const contentType = res.headers['content-type'] || '';
+        if (contentType.includes('text/html')) {
+          // Collect the body and look for the confirm token
+          let body = '';
+          res.setEncoding('utf8');
+          res.on('data', chunk => { body += chunk; });
+          res.on('end', () => {
+            // Extract confirm token from the page (older format)
+            const tokenMatch = body.match(/confirm=([0-9A-Za-z_-]+)/);
+            // Extract file ID if present
+            const idMatch = body.match(/id=([a-zA-Z0-9_-]{20,})/);
+            if (tokenMatch && idMatch) {
+              const confirmUrl =
+                `https://drive.usercontent.google.com/download?id=${idMatch[1]}&export=download&confirm=${tokenMatch[1]}`;
+              console.log('Google Drive confirmation page detected, retrying with confirm token...');
+              return doRequest(confirmUrl, redirectsLeft - 1);
+            }
+            // Newer Google Drive — try usercontent endpoint with confirm=t
+            const fileIdMatch = requestUrl.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+            if (fileIdMatch) {
+              const confirmUrl =
+                `https://drive.usercontent.google.com/download?id=${fileIdMatch[1]}&export=download&confirm=t`;
+              console.log('Google Drive virus-scan page detected, retrying with confirm=t...');
+              return doRequest(confirmUrl, redirectsLeft - 1);
+            }
+            reject(new Error('Received HTML page instead of CSV. Check that CSV_URL is a direct download link.'));
+          });
+          res.on('error', reject);
+          return;
+        }
+
+        // Stream the file to disk
         const total = parseInt(res.headers['content-length'], 10);
         let received = 0;
         const file = fs.createWriteStream(destPath);
@@ -68,12 +102,16 @@ function downloadFile(url, destPath) {
           }
         });
         res.pipe(file);
-        file.on('finish', () => { file.close(); console.log('\nDownload complete.'); resolve(); });
+        file.on('finish', () => {
+          file.close();
+          console.log(`\nDownload complete (${(received / 1024).toFixed(0)} KB).`);
+          resolve();
+        });
         file.on('error', reject);
       }).on('error', reject);
-    };
+    }
 
-    doRequest(url);
+    doRequest(url, MAX_REDIRECTS);
   });
 }
 
