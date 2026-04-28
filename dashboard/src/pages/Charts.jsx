@@ -1,4 +1,5 @@
 import { useApi } from '../hooks/useApi'
+import API_BASE from '../utils/apiBase'
 
 export default function Charts() {
   const { data, loading } = useApi('/api/charts')
@@ -19,10 +20,10 @@ export default function Charts() {
               <div className="card-title" style={{ margin: 0 }}>{chart.title}</div>
             </div>
             <div style={{ background: '#fff', display: 'flex', justifyContent: 'center' }}>
-              <img 
-                src={chart.url} 
-                alt={chart.title} 
-                style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'contain' }} 
+              <img
+                src={`${API_BASE}${chart.url}`}
+                alt={chart.title}
+                style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'contain' }}
               />
             </div>
           </div>
@@ -31,3 +32,4 @@ export default function Charts() {
     </div>
   )
 }
+

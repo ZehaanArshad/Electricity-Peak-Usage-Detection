@@ -1,16 +1,106 @@
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 const { parse } = require('csv-parse');
 
-const DATA_PATH = path.join(__dirname, '../data/cleaned/cleaned_data.csv');
+// ── Paths ──────────────────────────────────────────────────────────────────────
+// In production the CSV is downloaded on first startup; locally it is already on disk.
+const DATA_DIR  = path.join(__dirname, '../data/cleaned');
+const DATA_PATH = path.join(DATA_DIR, 'cleaned_data.csv');
 
-// This object stores all the data after loading
+// ── In-memory store ────────────────────────────────────────────────────────────
 let store = {};
 let isLoaded = false;
 
+// ── CSV Download helper ────────────────────────────────────────────────────────
+/**
+ * Downloads a file from `url` and saves it to `destPath`.
+ * Follows a single redirect automatically and handles both http / https.
+ */
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+    const protocol = url.startsWith('https') ? https : http;
+
+    const doRequest = (requestUrl) => {
+      protocol.get(requestUrl, (res) => {
+        // Follow redirect once
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          console.log(`Redirecting to: ${res.headers.location}`);
+          // Redirect may switch protocols
+          const redirectUrl = res.headers.location;
+          const redirectProtocol = redirectUrl.startsWith('https') ? https : http;
+          redirectProtocol.get(redirectUrl, (res2) => {
+            if (res2.statusCode !== 200) {
+              return reject(new Error(`Download failed with status ${res2.statusCode} after redirect`));
+            }
+            const total = parseInt(res2.headers['content-length'], 10);
+            let received = 0;
+            const file = fs.createWriteStream(destPath);
+            res2.on('data', (chunk) => {
+              received += chunk.length;
+              if (total) {
+                const pct = ((received / total) * 100).toFixed(1);
+                process.stdout.write(`\rDownloading CSV: ${pct}%   `);
+              }
+            });
+            res2.pipe(file);
+            file.on('finish', () => { file.close(); console.log('\nDownload complete.'); resolve(); });
+            file.on('error', reject);
+          }).on('error', reject);
+          return;
+        }
+
+        if (res.statusCode !== 200) {
+          return reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+        }
+
+        const total = parseInt(res.headers['content-length'], 10);
+        let received = 0;
+        const file = fs.createWriteStream(destPath);
+        res.on('data', (chunk) => {
+          received += chunk.length;
+          if (total) {
+            const pct = ((received / total) * 100).toFixed(1);
+            process.stdout.write(`\rDownloading CSV: ${pct}%   `);
+          }
+        });
+        res.pipe(file);
+        file.on('finish', () => { file.close(); console.log('\nDownload complete.'); resolve(); });
+        file.on('error', reject);
+      }).on('error', reject);
+    };
+
+    doRequest(url);
+  });
+}
+
+// ── Main loader ────────────────────────────────────────────────────────────────
 async function loadData() {
   if (isLoaded) return store;
 
+  // If the CSV does not exist locally, download it from the environment variable
+  if (!fs.existsSync(DATA_PATH)) {
+    const csvUrl = process.env.CSV_URL;
+    if (!csvUrl) {
+      throw new Error(
+        'cleaned_data.csv not found locally and CSV_URL environment variable is not set. ' +
+        'Please set CSV_URL to the public direct-download link of the CSV file.'
+      );
+    }
+    console.log(`CSV not found at ${DATA_PATH}. Downloading from CSV_URL...`);
+    await downloadFile(csvUrl, DATA_PATH);
+  } else {
+    console.log('CSV found locally, skipping download.');
+  }
+
+  return parseCSV();
+}
+
+// ── CSV Parsing ────────────────────────────────────────────────────────────────
+function parseCSV() {
   return new Promise((resolve, reject) => {
     let headers = null;
     let rows = [];

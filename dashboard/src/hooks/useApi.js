@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import API_BASE from '../utils/apiBase'
 
 export function useApi(endpoint, deps = []) {
   const [data, setData]     = useState(null)
@@ -10,7 +11,8 @@ export function useApi(endpoint, deps = []) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(endpoint)
+      const url = `${API_BASE}${endpoint}`
+      const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setData(json)

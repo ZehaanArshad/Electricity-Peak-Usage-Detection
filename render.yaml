@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: electricity-peak-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CSV_URL
+        sync: false        # Set this manually in the Render dashboard
+      - key: ALLOWED_ORIGINS
+        sync: false        # Set to your Vercel URL, e.g. https://your-app.vercel.app
