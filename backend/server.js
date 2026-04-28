@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3001;
 // or to '*' to allow all origins (useful for debugging).
 const rawOrigins = process.env.ALLOWED_ORIGINS || '';
 const allowedOrigins = rawOrigins
-  ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean)
+  ? rawOrigins.split(',').map(o => o.trim().replace(/\/$/, '')).filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:4173'];
 
 const corsOrigin = allowedOrigins.includes('*')
