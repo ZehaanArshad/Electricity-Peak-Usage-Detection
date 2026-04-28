@@ -1,23 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { loadData } = require('./dataLoader');
+const { loadData, getData, isLoaded } = require('./dataLoader'); // ← fixed, single import
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-// Set ALLOWED_ORIGINS to a comma-separated list of allowed frontend origins,
-// or to '*' to allow all origins (handy while debugging).
-// Trailing slashes are stripped automatically so a stray '/' never breaks CORS.
+// ── CORS ───────────────────────────────────────────────────────────────────────
 const rawOrigins = process.env.ALLOWED_ORIGINS || '';
 const allowedOrigins = rawOrigins
   ? rawOrigins.split(',').map(o => o.trim().replace(/\/$/, '')).filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:4173'];
 
-const corsOrigin = allowedOrigins.includes('*')
-  ? '*'             // wildcard — allow all origins
-  : allowedOrigins; // array — cors package handles matching natively
+const corsOrigin = allowedOrigins.includes('*') ? '*' : allowedOrigins;
 
 app.use(cors({
   origin: corsOrigin,
@@ -27,13 +22,21 @@ app.use(cors({
 
 app.use(express.json());
 
-// Serve static chart images from the outputs folder
 app.use('/charts', express.static(path.join(__dirname, '../outputs')));
 
-// All API routes
+// ── Health check ───────────────────────────────────────────────────────────────
+// ⚠️ MUST be before app.use('/api', ...) otherwise it gets intercepted
+app.get('/api/health', (req, res) => {
+  if (!isLoaded) {
+    return res.json({ status: 'loading' })
+  }
+  res.json({ status: 'ok' })
+});
+
+// ── API routes ─────────────────────────────────────────────────────────────────
 app.use('/api', require('./routes/api'));
 
-// Home / health check for Render's uptime monitor
+// ── Root ───────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ message: 'Electricity Peak Detection API is running!' });
 });

@@ -290,7 +290,9 @@ function parseCSV() {
   });
 }
 
+
 module.exports = {
   loadData,
-  getData: () => store
-};
+  getData: () => store,
+  get isLoaded() { return isLoaded }   
+}
