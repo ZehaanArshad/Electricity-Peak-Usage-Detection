@@ -26,15 +26,15 @@ function App() {
   )
 
   if (health?.status === 'loading') {
+    // Backend is still parsing the CSV — poll every 3s until ready
+    setTimeout(() => window.location.reload(), 3000)
     return (
       <div className="loading-screen">
+        <div className="spinner"></div>
         <h2>📂 Loading Large Dataset</h2>
         <p>Processing 132k rows across 370 meters...</p>
-        <div className="progress-bar-wrap mt-6">
-          <div className="progress-bar-fill" style={{ width: `${health.loading.pct}%` }}></div>
-        </div>
-        <p style={{ marginTop: '10px', fontSize: '13px' }}>
-          {health.loading.pct}% &mdash; ETA {Math.max(0, 15 - (health.loading.elapsedSec || 0)).toFixed(0)}s
+        <p style={{ marginTop: '10px', fontSize: '13px', opacity: 0.6 }}>
+          Checking again in 3 seconds...
         </p>
       </div>
     )
