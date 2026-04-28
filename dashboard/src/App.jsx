@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useApi } from './hooks/useApi'
 import Layout from './components/Layout'
@@ -8,7 +9,14 @@ import Charts from './pages/Charts'
 
 function App() {
   // Global health/loading check
-  const { data: health, loading, error } = useApi('/api/health')
+  const { data: health, loading, error, refetch } = useApi('/api/health')
+
+  // While backend is still processing the CSV, poll every 4 seconds
+  useEffect(() => {
+    if (health?.status !== 'loading') return
+    const id = setInterval(refetch, 4000)
+    return () => clearInterval(id)
+  }, [health?.status, refetch])
 
   if (loading) return (
     <div className="loading-screen">
@@ -21,24 +29,32 @@ function App() {
     <div className="loading-screen">
       <h2>⚠️ Backend Error</h2>
       <p className="error-msg">{error}</p>
-      <p>Is the server running on port 3001?</p>
+      <p style={{ marginTop: '12px', fontSize: '13px', opacity: 0.7 }}>
+        The backend may still be starting up on Render (free tier can take ~30s).
+      </p>
+      <button
+        onClick={refetch}
+        style={{
+          marginTop: '16px', padding: '8px 20px', cursor: 'pointer',
+          background: '#4f8ef7', color: '#fff', border: 'none',
+          borderRadius: '6px', fontSize: '14px'
+        }}
+      >
+        Retry
+      </button>
     </div>
   )
 
-  if (health?.status === 'loading') {
-    // Backend is still parsing the CSV — poll every 3s until ready
-    setTimeout(() => window.location.reload(), 3000)
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <h2>📂 Loading Large Dataset</h2>
-        <p>Processing 132k rows across 370 meters...</p>
-        <p style={{ marginTop: '10px', fontSize: '13px', opacity: 0.6 }}>
-          Checking again in 3 seconds...
-        </p>
-      </div>
-    )
-  }
+  if (health?.status === 'loading') return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <h2>📂 Loading Large Dataset</h2>
+      <p>Processing 132k rows across 370 meters...</p>
+      <p style={{ marginTop: '10px', fontSize: '13px', opacity: 0.6 }}>
+        Checking again every 4 seconds...
+      </p>
+    </div>
+  )
 
   return (
     <BrowserRouter>
