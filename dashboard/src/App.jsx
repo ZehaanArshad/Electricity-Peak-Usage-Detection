@@ -34,7 +34,7 @@ function App() {
           <div className="progress-bar-fill" style={{ width: `${health.loading.pct}%` }}></div>
         </div>
         <p style={{ marginTop: '10px', fontSize: '13px' }}>
-          {health.loading.pct}% &mdash; ETA {Math.max(0, 15 - (health.loading.elapsedSec||0)).toFixed(0)}s
+          {health.loading.pct}% &mdash; ETA {Math.max(0, 15 - (health.loading.elapsedSec || 0)).toFixed(0)}s
         </p>
       </div>
     )
