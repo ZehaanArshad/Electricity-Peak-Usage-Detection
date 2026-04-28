@@ -162,9 +162,9 @@ function parseCSV() {
       const dt = new Date(row[0].replace(' ', 'T'));
       if (isNaN(dt.getTime())) return;
 
-      const values = [];
+      const values = new Float32Array(row.length - 1);
       for (let i = 1; i < row.length; i++) {
-        values.push(parseFloat(row[i]) || 0);
+        values[i - 1] = parseFloat(row[i]) || 0;
       }
 
       rows.push({ dt, dtStr: row[0], values });

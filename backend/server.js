@@ -27,7 +27,8 @@ app.use('/charts', express.static(path.join(__dirname, '../outputs')));
 // ── Health check ───────────────────────────────────────────────────────────────
 // ⚠️ MUST be before app.use('/api', ...) otherwise it gets intercepted
 app.get('/api/health', (req, res) => {
-  if (!isLoaded) {
+  const d = getData();
+  if (!d || !d.meters) {
     return res.json({ status: 'loading' })
   }
   res.json({ status: 'ok' })
