@@ -1,7 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { loadData, getData, isLoaded } = require('./dataLoader'); // ← fixed, single import
+const { loadData, getData } = require('./dataLoader');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,16 +23,30 @@ app.use(cors({
 
 app.use(express.json());
 
+// Serve static charts from the root 'outputs' folder
 app.use('/charts', express.static(path.join(__dirname, '../outputs')));
 
 // ── Health check ───────────────────────────────────────────────────────────────
-// ⚠️ MUST be before app.use('/api', ...) otherwise it gets intercepted
 app.get('/api/health', (req, res) => {
   const d = getData();
-  if (!d || !d.meters) {
-    return res.json({ status: 'loading' })
+  
+  if (d.error) {
+    return res.status(500).json({ 
+      status: 'error', 
+      message: d.error,
+      suggestion: 'Check CSV_URL and ALLOWED_ORIGINS environment variables.'
+    });
   }
-  res.json({ status: 'ok' })
+
+  if (!d.isLoaded) {
+    return res.json({ status: 'loading' });
+  }
+
+  res.json({ 
+    status: 'ok',
+    numMeters: d.numMeters,
+    totalRows: d.totalRows
+  });
 });
 
 // ── API routes ─────────────────────────────────────────────────────────────────
@@ -39,16 +54,24 @@ app.use('/api', require('./routes/api'));
 
 // ── Root ───────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ message: 'Electricity Peak Detection API is running!' });
+  res.json({ 
+    message: 'Electricity Peak Detection API is running!',
+    endpoints: ['/api/health', '/api/summary', '/api/meters', '/charts']
+  });
 });
 
 // ── Start server ───────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`CORS allowed origins: ${JSON.stringify(corsOrigin)}`);
-  console.log('Loading CSV data...');
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`🌍 CORS allowed origins: ${JSON.stringify(corsOrigin)}`);
+  
+  if (!process.env.CSV_URL) {
+    console.warn('⚠️  WARNING: CSV_URL environment variable is not set.');
+  }
 
   loadData()
-    .then(() => console.log('Data loaded! All endpoints are ready.'))
-    .catch(err => console.error('Error loading data:', err.message));
+    .then(() => console.log('✅ Data loaded! All endpoints are ready.'))
+    .catch(err => {
+      console.error('❌ Error loading data:', err.message);
+    });
 });
